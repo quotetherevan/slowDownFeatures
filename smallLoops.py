@@ -28,10 +28,8 @@ currentF = 0
 currentFeature = "na"
 outerLoopBegin = []
 outerLoopEnd = []
-outerLoopLength = []
 denseSupportBegin = []
 denseSupportEnd = []
-denseSupportLength = []
 lineX = 0
 lineY = 0
 lineZ = 0
@@ -160,8 +158,6 @@ if slowDownFeatures == 1:
 							elif denseSupportToggle == 1 and currentFeature == "dense support":
 								#log the current line as the last line of the loop
 								denseSupportEnd.append(linecount-1)
-								#log the current loop length
-								denseSupportLength.append(loopDist)
 								#reset loop length
 								loopDist = 0
 								#reset current feature
