@@ -1,9 +1,9 @@
-# slowDownForSmallLoops
+# slowDownFeatures
 Detect perimeters/dense support layers and adjust speeds of smaller outline/loops in a G-Code file
 
-usage: smallLoops.py filename slowDownSpeed LengthThreshold
+usage: python3 smallFeatures.py filename slowDownSpeed LengthThreshold
 
-example smallLoops.py darthRevanMask.gcode 360 30
+example python3 smallFeatures.py darthRevanMask.gcode 360 30
 
 # Requirements
 filename must contain .gcode
