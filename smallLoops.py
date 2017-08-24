@@ -28,6 +28,7 @@ currentF = 0
 currentFeature = "na"
 outerLoopBegin = []
 outerLoopEnd = []
+outerLoopLength = []
 denseSupportBegin = []
 denseSupportEnd = []
 lineX = 0
