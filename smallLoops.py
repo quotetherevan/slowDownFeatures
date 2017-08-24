@@ -10,9 +10,12 @@ zRE = re.compile( r"Z\S*" )
 eRE = re.compile( r"E\S*" )
 fRE = re.compile( r"F\S*" )
 outerPerimRE = re.compile( r";\souter\sperimeter" )
+denseSupportRE = re.compile( r";\sdense\ssupport" )
 
 sampleString = "; none"
-slowDownForSmallLoops = 1
+slowDownFeatures = 1
+denseSupportToggle = 0
+outerPerimeterToggle = 1
 slowedSpeed = "F360"
 lengthThreshold = 30
 relativeE = 0
@@ -26,6 +29,9 @@ currentFeature = "na"
 outerLoopBegin = []
 outerLoopEnd = []
 outerLoopLength = []
+denseSupportBegin = []
+denseSupportEnd = []
+denseSupportLength = []
 lineX = 0
 lineY = 0
 lineZ = 0
@@ -53,21 +59,25 @@ if len(sys.argv) == 4:
 	num_lines = fr.read().count('\n')
 	fr.close()
 	fr = open(readfile, 'r')
-	slowedSpeed = sys.argv[2]
+	slowedSpeed = "F" + sys.argv[2]
 	lengthThreshold = int(sys.argv[3])
 else:
 	print("usage: smallLoops.py filename slowedSpeed loopThreshold")
 	sys.exit()
-if slowDownForSmallLoops == 1:
+if slowDownFeatures == 1:
 	for i, line in enumerate(fr):
 		sampleString = line
 		linecount = linecount + 1
 		commentMatch = commentCharRE.match( sampleString )
 		if commentMatch:
-			featureMatch = outerPerimRE.match( sampleString )
-			if featureMatch:
+			outerPerimeterMatch = outerPerimRE.match( sampleString )
+			denseSupportMatch = denseSupportRE.match( sampleString )
+			if outerPerimeterToggle == 1 and outerPerimeterMatch:
 				outerLoopBegin.append(linecount+1)
 				currentFeature = "outer perimeter"
+			if denseSupportToggle == 1 and denseSupportMatch:
+				denseSupportBegin.append(linecount+1)
+				currentFeature = "dense support"
 		else:
 			gMatch = gRE.match( sampleString )
 			xMatch = xRE.search( sampleString )
@@ -80,7 +90,6 @@ if slowDownForSmallLoops == 1:
 				gStr = gStr[1:(len(gStr))]
 				gDec = float(gStr)
 				if gDec == 1 :
-					print ("Line: " + str(linecount) + ": " + sampleString )
 					if xMatch:
 						xStr = str(xMatch.group())
 						xDec = float(xStr[1:(len(xStr))])
@@ -89,9 +98,6 @@ if slowDownForSmallLoops == 1:
 							changeX = 0
 						else:
 							changeX = currentX - lineX
-							#print( "Current X: " + str( currentX ) )
-							#print( "New	  X: " + str( xDec ) )
-							#print( "Change  X: " + str( changeX ) )
 					if yMatch:
 						yStr = str(yMatch.group())
 						yDec = float(yStr[1:(len(yStr))])
@@ -100,27 +106,21 @@ if slowDownForSmallLoops == 1:
 							changeY = 0
 						else:
 							changeY = currentY - lineY
-							#print( "Current Y: " + str( currentY ) )
-							#print( "New	  Y: " + str( yDec ) )
-							#print( "Change  Y: " + str( changeY ) )
 					if zMatch:
 						zStr = str(zMatch.group())
 						zStr = zStr[1:(len(zStr))]
 						zDec = float(zStr)
-						#print( "ZPos: " +"Z"+zStr )
 						lineZ = zDec
 						if zDec == currentZ :
 							changeZ = 0
 						else:
 							changeZ = currentZ - lineZ
-							#print( "New ZPos: " +"Z"+zStr )
 					if eMatch:
 						eStr = str(eMatch.group())
 						eStr = eStr[1:(len(eStr))]
 						eDec = float(eStr)
-						#print( "EPos: " +"E"+eStr )
 						lineE = eDec
-						if currentFeature == "outer perimeter":
+						if outerPerimeterToggle == 1 and currentFeature == "outer perimeter":
 							if eDec == currentE :
 								changeE = 0
 							else:
@@ -132,12 +132,23 @@ if slowDownForSmallLoops == 1:
 									if changeX > 0 or changeX < 0 or changeY > 0 or changeY < 0:
 										dist = math.hypot(changeX, changeY)
 										loopDist = loopDist + dist
-										#print ("line: " + str(linecount) + "loopDist: " + str(loopDist))
+						elif denseSupportToggle == 1 and currentFeature == "dense support":
+							if eDec == currentE :
+								changeE = 0
+							else:
+								if relativeE == 0:
+									changeE = lineE - currentE 
+								else:
+									changeE = lineE
+								if changeE > 0:
+									if changeX > 0 or changeX < 0 or changeY > 0 or changeY < 0:
+										dist = math.hypot(changeX, changeY)
+										loopDist = loopDist + dist
 					#any non comment lines without an E value
 					else: 
 						if loopDist > 0:
 							#if non-commented line is featured inside the body of an "outer perimeter"
-							if currentFeature == "outer perimeter":
+							if outerPerimeterToggle == 1 and currentFeature == "outer perimeter":
 								#log the current line as the last line of the loop
 								outerLoopEnd.append(linecount-1)
 								#log the current loop length
@@ -146,17 +157,24 @@ if slowDownForSmallLoops == 1:
 								loopDist = 0
 								#reset current feature
 								currentFeature = "na"
+							elif denseSupportToggle == 1 and currentFeature == "dense support":
+								#log the current line as the last line of the loop
+								denseSupportEnd.append(linecount-1)
+								#log the current loop length
+								denseSupportLength.append(loopDist)
+								#reset loop length
+								loopDist = 0
+								#reset current feature
+								currentFeature = "na"
 					if fMatch:
 						fStr = str(fMatch.group())
 						fStr = fStr[1:(len(fStr))]
 						fDec = float(fStr)
-						#print( "FPos: " +"F"+fStr )
 						lineF = fDec
 						if fDec == currentF :
 							changeF = 0
 						else:
 							changeF = currentF - lineF
-							#print( "New FPos: " +"F"+fStr )
 					currentX = lineX
 					currentY = lineY
 					changeX = 0
@@ -169,15 +187,14 @@ if slowDownForSmallLoops == 1:
 readfile = sys.argv[1]
 fr = open(readfile, 'r')
 fw = open(writefile, 'w')
-if slowDownForSmallLoops == 1:
-	loopCount = 0.0
-	#slowdown for small loops
+if slowDownFeatures == 1:
+	outerLoopCount = 0.0
+	denseSupportCount = 0.0
+	#slowdown features
 	for i, line in enumerate(fr):
-		#print( str(i))
 		temp = []
-		if int(loopCount) < len(outerLoopBegin) and i >= outerLoopBegin[int(loopCount)] and i <= outerLoopEnd[int(loopCount)]:
-			#print(str(outerLoopLength[int(loopCount)]) + " loopCount: " + str(loopCount))
-			if outerLoopLength[int(loopCount)] <= lengthThreshold:
+		if outerPerimeterToggle == 1 and int(outerLoopCount) < len(outerLoopBegin) and i >= outerLoopBegin[int(outerLoopCount)] and i <= outerLoopEnd[int(outerLoopCount)]:
+			if outerLoopLength[int(outerLoopCount)] <= lengthThreshold:
 				gMatch = gRE.match( line )
 				xMatch = xRE.search( line )
 				yMatch = yRE.search( line )
@@ -186,7 +203,6 @@ if slowDownForSmallLoops == 1:
 				fMatch = fRE.search( line )
 				if gMatch:
 					if "G1" in gMatch.group() and eMatch and float(eMatch.group()[1:len(eMatch.group())]) > 0:
-						#print("line " + str(i) + ": " + line)
 						temp.append(gMatch.group())
 						if xMatch:
 							temp.append(xMatch.group())
@@ -204,13 +220,11 @@ if slowDownForSmallLoops == 1:
 							slowedDec = float(slowedFStr)
 							if fDec > slowedDec:
 								temp.append(slowedSpeed)
-								print("Altering speed")
 								temp.append("\n")
 								newline = " ".join(temp)
-								print("Newline: " + newline)
+								print(str(i)+"  Adjusted OuterPerimeter Speed: " + newline)
 								fw.write(newline)			
 							else:
-								print("Original Speed ("+ str(fMatch.group()) + ") <= slowedSpeed (" + slowedSpeed + ")") 
 								temp.append(fMatch.group())
 								temp.append("\n")
 								newline = " ".join(temp)
@@ -220,21 +234,65 @@ if slowDownForSmallLoops == 1:
 							newline = " ".join(temp)
 							fw.write(newline)
 					else:
-						#print("line " + str(i+1) + "is not the start of a new loop")
 						newline = line
 						fw.write(newline)
 				else:
-					#print("line " + str(i+1) + "is not the start of a new loop")
 					newline = line
 					fw.write(newline)
 			else:
-				#print("line " + str(i+1) + "is not the start of a new loop")
 				newline = line
 				fw.write(newline)
-			if i >= outerLoopEnd[int(loopCount)]:
-				loopCount += 1
+			if i >= outerLoopEnd[int(outerLoopCount)]:
+				outerLoopCount += 1
+		elif int(denseSupportCount) < len(denseSupportBegin) and i >= denseSupportBegin[int(denseSupportCount)] and i <= denseSupportEnd[int(denseSupportCount)]:
+			gMatch = gRE.match( line )
+			xMatch = xRE.search( line )
+			yMatch = yRE.search( line )
+			zMatch = zRE.search( line )
+			eMatch = eRE.search( line )
+			fMatch = fRE.search( line )
+			if gMatch:
+				if "G1" in gMatch.group() and eMatch and float(eMatch.group()[1:len(eMatch.group())]) > 0:
+					temp.append(gMatch.group())
+					if xMatch:
+						temp.append(xMatch.group())
+					if yMatch:
+						temp.append(yMatch.group())
+					if zMatch:
+						temp.append(zMatch.group())
+					if eMatch:
+						temp.append(eMatch.group())
+					if fMatch:
+						fStr = str(fMatch.group())
+						fStr = fStr[1:(len(fStr))]
+						fDec = float(fStr)
+						slowedFStr = slowedSpeed[1:len(slowedSpeed)]
+						slowedDec = float(slowedFStr)
+						if fDec > slowedDec:
+							temp.append(slowedSpeed)
+							temp.append("\n")
+							newline = " ".join(temp)
+							print(str(i)+"  Adjusted DenseSupport Speed: " + newline)
+							fw.write(newline)			
+						else:
+							temp.append(fMatch.group())
+							temp.append("\n")
+							newline = " ".join(temp)
+							fw.write(newline)
+					else:
+						temp.append("\n")
+						newline = " ".join(temp)
+						fw.write(newline)
+				else:
+					newline = line
+					fw.write(newline)
+
+			else:
+				newline = line
+				fw.write(newline)
+			if i >= denseSupportEnd[int(denseSupportCount)]:
+				denseSupportCount += 1
 		else:
-			#print("line " + str(i+1) + "is not the start of a new loop")
 			newline = line
 			fw.write(newline)
 			
