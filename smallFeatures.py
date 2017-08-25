@@ -74,9 +74,18 @@ if slowDownFeatures == 1:
 			if outerPerimeterToggle == 1 and outerPerimeterMatch:
 				outerLoopBegin.append(linecount+1)
 				currentFeature = "outer perimeter"
-			if denseSupportToggle == 1 and denseSupportMatch:
+			elif denseSupportToggle == 1 and denseSupportMatch:
 				denseSupportBegin.append(linecount+1)
 				currentFeature = "dense support"
+			elif outerPerimeterToggle == 1 and currentFeature == "outer perimeter" and loopDist > 0:
+				outerLoopEnd.append(linecount-1)
+				outerLoopLength.append(loopDist)
+				loopDist = 0
+				currentFeature = "na"
+			elif denseSupportToggle == 1 and currentFeature == "dense support":	
+				denseSupportEnd.append(linecount-1)
+				loopDist = 0
+				currentFeature = "na"
 		else:
 			gMatch = gRE.match( sampleString )
 			xMatch = xRE.search( sampleString )
@@ -143,26 +152,6 @@ if slowDownFeatures == 1:
 									if changeX > 0 or changeX < 0 or changeY > 0 or changeY < 0:
 										dist = math.hypot(changeX, changeY)
 										loopDist = loopDist + dist
-					#any non comment lines without an E value
-					else: 
-						if loopDist > 0:
-							#if non-commented line is featured inside the body of an "outer perimeter"
-							if outerPerimeterToggle == 1 and currentFeature == "outer perimeter":
-								#log the current line as the last line of the loop
-								outerLoopEnd.append(linecount-1)
-								#log the current loop length
-								outerLoopLength.append(loopDist)
-								#reset loop length
-								loopDist = 0
-								#reset current feature
-								currentFeature = "na"
-							elif denseSupportToggle == 1 and currentFeature == "dense support":
-								#log the current line as the last line of the loop
-								denseSupportEnd.append(linecount-1)
-								#reset loop length
-								loopDist = 0
-								#reset current feature
-								currentFeature = "na"
 					if fMatch:
 						fStr = str(fMatch.group())
 						fStr = fStr[1:(len(fStr))]
