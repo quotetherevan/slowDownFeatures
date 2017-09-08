@@ -11,6 +11,7 @@ eRE = re.compile( r"E\S*" )
 fRE = re.compile( r"F\S*" )
 outerPerimRE = re.compile( r";\souter\sperimeter" )
 denseSupportRE = re.compile( r";\sdense\ssupport" )
+layerComRE = re.compile( r";\s*layer" )
 
 sampleString = "; none"
 slowDownFeatures = 1
@@ -71,6 +72,7 @@ if slowDownFeatures == 1:
 		if commentMatch:
 			outerPerimeterMatch = outerPerimRE.match( sampleString )
 			denseSupportMatch = denseSupportRE.match( sampleString )
+			layerComMatch = layerComRE.match( sampleString )
 			if outerPerimeterToggle == 1 and outerPerimeterMatch:
 				outerLoopBegin.append(linecount+1)
 				currentFeature = "outer perimeter"
@@ -83,9 +85,13 @@ if slowDownFeatures == 1:
 				loopDist = 0
 				currentFeature = "na"
 			elif denseSupportToggle == 1 and currentFeature == "dense support":	
-				denseSupportEnd.append(linecount-1)
-				loopDist = 0
-				currentFeature = "na"
+					if layerComMatch:
+						print("Dense support spanning 2 layers - skipping layer comment")
+					else:
+						print("ending dense support detection at layer" + str(linecount-1))
+						denseSupportEnd.append(linecount-1)
+						loopDist = 0
+						currentFeature = "na"
 		else:
 			gMatch = gRE.match( sampleString )
 			xMatch = xRE.search( sampleString )
