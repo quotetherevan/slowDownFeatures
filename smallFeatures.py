@@ -9,8 +9,8 @@ yRE = re.compile( r"Y\S*" )
 zRE = re.compile( r"Z\S*" )
 eRE = re.compile( r"E\S*" )
 fRE = re.compile( r"F\S*" )
-outerPerimRE = re.compile( r";\souter\sperimeter" )
-denseSupportRE = re.compile( r";\sdense\ssupport" )
+outerPerimRE = re.compile( r";\sfeature\souter\sperimeter" )
+denseSupportRE = re.compile( r";\sfeature\sdense\ssupport" )
 layerComRE = re.compile( r";\s*layer" )
 
 sampleString = "; none"
